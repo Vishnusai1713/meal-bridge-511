@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import {
   ArrowRight,
   Bell,
@@ -34,16 +35,17 @@ const navItems = [
   { label: 'Sustainability', icon: Leaf },
 ]
 
-const surplus = [
-  { item: 'Cooked rice', source: 'Central Kitchen • Bengaluru', quantity: '120 kg', status: 'Urgent', time: 'Expires in 2h', color: 'bg-rose-50 text-rose-700' },
-  { item: 'Fresh vegetables', source: 'Green Valley Foods • Pune', quantity: '84 kg', status: 'Ready', time: 'Good for 2 days', color: 'bg-emerald-50 text-emerald-700' },
-  { item: 'Packaged meals', source: 'Campus Canteen • Delhi', quantity: '210 units', status: 'Matched', time: 'Pickup today', color: 'bg-amber-50 text-amber-700' },
-]
+type SurplusItem = { id: string; item: string; source: string; quantity: number; unit: string; status: string; expires_at: string | null }
 
-export default function FoodwiseDashboard() {
+export default function FoodwiseDashboard({ user, items }: { user: { email?: string; user_metadata?: { first_name?: string; organization?: string } }; items: SurplusItem[] }) {
   const [active, setActive] = useState('Overview')
+  const displayName = user.user_metadata?.first_name || user.email?.split('@')[0] || 'there'
   const [mobileOpen, setMobileOpen] = useState(false)
   const isAbout = active === 'About'
+  async function signOut() {
+    await createClient().auth.signOut()
+    window.location.reload()
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f8f3] text-[#1d3029]">
@@ -60,9 +62,9 @@ export default function FoodwiseDashboard() {
           {navItems.map(({ label, icon: Icon }) => <button key={label} onClick={() => { setActive(label); setMobileOpen(false) }} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium transition ${active === label ? 'bg-[#e8f3ec] text-[#0f6b4f]' : 'text-[#687a70] hover:bg-[#f2f6f1]'}`}><Icon className="size-[17px]" />{label}</button>)}
         </div>
         <div className="mt-auto flex flex-col gap-1">
-          <button className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-[#687a70] hover:bg-[#f2f6f1]"><Settings2 className="size-[17px]" />Settings</button>
+          <button onClick={signOut} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-[#687a70] hover:bg-[#f2f6f1]"><Settings2 className="size-[17px]" />Sign out</button>
           <button className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium transition ${isAbout ? 'bg-[#e8f3ec] text-[#0f6b4f]' : 'text-[#687a70] hover:bg-[#f2f6f1]'}`} onClick={() => { setActive('About'); setMobileOpen(false) }}><CircleHelp className="size-[17px]" />About foodwise</button>
-          <div className="mt-5 flex items-center gap-3 border-t border-[#edf1ed] px-2 pt-5"><div className="flex size-8 items-center justify-center rounded-full bg-[#f4c58d] text-xs font-bold text-[#6e401f]">AK</div><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold">Ananya Kapoor</p><p className="truncate text-[10px] text-[#94a29a]">Program lead</p></div><ChevronDown className="size-3.5 text-[#9aaa9f]" /></div>
+          <div className="mt-5 flex items-center gap-3 border-t border-[#edf1ed] px-2 pt-5"><div className="flex size-8 items-center justify-center rounded-full bg-[#f4c58d] text-xs font-bold text-[#6e401f]">AK</div><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold">{displayName}</p><p className="truncate text-[10px] text-[#94a29a]">{user.user_metadata?.organization || 'Workspace member'}</p></div><ChevronDown className="size-3.5 text-[#9aaa9f]" /></div>
         </div>
       </aside>
 
@@ -91,7 +93,7 @@ function Overview({ active, setActive }: { active: string; setActive: (value: st
       <section className="rounded-2xl border border-[#e0e9df] bg-[#0f6b4f] p-6 text-white shadow-[0_8px_24px_rgba(15,107,79,0.15)]"><div className="flex items-start justify-between"><div><div className="mb-3 flex size-9 items-center justify-center rounded-xl bg-white/15"><Zap className="size-4 text-[#f5b86f]" /></div><h2 className="text-lg font-bold tracking-tight">AI action center</h2><p className="mt-1 max-w-[260px] text-xs leading-5 text-[#b6d1c4]">Three opportunities need your attention today.</p></div><span className="rounded-full bg-[#f5b86f] px-2 py-1 text-[10px] font-bold text-[#51351d]">3 new</span></div><div className="mt-6 flex flex-col gap-3"><Action text="Redistribute 120 kg cooked rice" meta="Central Kitchen · expires in 2h" /><Action text="Route pickup to Seva Shelter" meta="Optimized route · saves 14 min" /><Action text="Review cold storage alert" meta="Unit 04 · temperature +2.1°C" /></div><button className="mt-5 flex items-center gap-2 text-xs font-bold text-[#f5c486]">Review all actions <ArrowRight className="size-3.5" /></button></section>
     </div>
     <div className="mt-5 grid gap-5 xl:grid-cols-[1.35fr_1fr]">
-      <section className="rounded-2xl border border-[#e0e9df] bg-white p-5 shadow-[0_8px_24px_rgba(31,66,48,0.03)] md:p-6"><div className="flex items-center justify-between"><div><h2 className="text-sm font-bold text-[#223c30]">Surplus food queue</h2><p className="mt-1 text-xs text-[#8a988f]">Items that can be saved and redistributed</p></div><button onClick={() => setActive('Redistribution')} className="text-xs font-bold text-[#0f6b4f]">View all <ArrowRight className="ml-1 inline size-3.5" /></button></div><div className="mt-5 overflow-x-auto"><table className="w-full min-w-[560px] text-left"><thead className="border-b border-[#edf1ed] text-[10px] font-bold uppercase tracking-[0.12em] text-[#9ba79f]"><tr><th className="pb-3 font-bold">Item</th><th className="pb-3 font-bold">Quantity</th><th className="pb-3 font-bold">Status</th><th className="pb-3 font-bold">Action</th></tr></thead><tbody className="text-xs">{surplus.map((row) => <tr key={row.item} className="border-b border-[#f0f3ef] last:border-0"><td className="py-4"><p className="font-bold text-[#30473b]">{row.item}</p><p className="mt-1 text-[10px] text-[#98a49d]">{row.source}</p></td><td className="py-4 font-semibold text-[#4a5f53]">{row.quantity}</td><td className="py-4"><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${row.color}`}>{row.status}</span><p className="mt-1 text-[10px] text-[#98a49d]">{row.time}</p></td><td className="py-4"><button className="rounded-lg border border-[#dfe8de] px-2.5 py-1.5 text-[10px] font-bold text-[#0f6b4f] hover:bg-[#eff7f0]">Match partner</button></td></tr>)}</tbody></table></div></section>
+      <section className="rounded-2xl border border-[#e0e9df] bg-white p-5 shadow-[0_8px_24px_rgba(31,66,48,0.03)] md:p-6"><div className="flex items-center justify-between"><div><h2 className="text-sm font-bold text-[#223c30]">Surplus food queue</h2><p className="mt-1 text-xs text-[#8a988f]">Items that can be saved and redistributed</p></div><button onClick={() => setActive('Redistribution')} className="text-xs font-bold text-[#0f6b4f]">View all <ArrowRight className="ml-1 inline size-3.5" /></button></div><div className="mt-5 overflow-x-auto"><table className="w-full min-w-[560px] text-left"><thead className="border-b border-[#edf1ed] text-[10px] font-bold uppercase tracking-[0.12em] text-[#9ba79f]"><tr><th className="pb-3 font-bold">Item</th><th className="pb-3 font-bold">Quantity</th><th className="pb-3 font-bold">Status</th><th className="pb-3 font-bold">Action</th></tr></thead><tbody className="text-xs">{(items.length ? items : []).map((row) => <tr key={row.id} className="border-b border-[#f0f3ef] last:border-0"><td className="py-4"><p className="font-bold text-[#30473b]">{row.item}</p><p className="mt-1 text-[10px] text-[#98a49d]">{row.source}</p></td><td className="py-4 font-semibold text-[#4a5f53]">{row.quantity} {row.unit}</td><td className="py-4"><span className="rounded-full bg-[#e7f4eb] px-2 py-1 text-[10px] font-bold text-[#168053]">{row.status}</span><p className="mt-1 text-[10px] text-[#98a49d]">{row.expires_at ? new Date(row.expires_at).toLocaleDateString() : 'No expiry set'}</p></td><td className="py-4"><button className="rounded-lg border border-[#dfe8de] px-2.5 py-1.5 text-[10px] font-bold text-[#0f6b4f] hover:bg-[#eff7f0]">Match partner</button></td></tr>)}</tbody></table></div></section>
       <section className="rounded-2xl border border-[#e0e9df] bg-white p-5 shadow-[0_8px_24px_rgba(31,66,48,0.03)] md:p-6"><div className="flex items-center justify-between"><div><h2 className="text-sm font-bold text-[#223c30]">Redistribution network</h2><p className="mt-1 text-xs text-[#8a988f]">Live partner activity</p></div><button aria-label="Search partners" className="rounded-lg p-1.5 text-[#89978e] hover:bg-[#f1f5ef]"><Search className="size-4" /></button></div><div className="relative mt-5 flex h-[178px] items-center justify-center overflow-hidden rounded-xl bg-[#edf5eb]"><div className="absolute inset-0 opacity-60" style={{ backgroundImage: 'linear-gradient(#d9e8d8 1px, transparent 1px), linear-gradient(90deg, #d9e8d8 1px, transparent 1px)', backgroundSize: '28px 28px' }} /><div className="absolute h-[120px] w-[220px] rotate-[-18deg] rounded-[50%] border border-dashed border-[#9ac6a8]" /><div className="absolute h-[180px] w-[280px] rotate-[28deg] rounded-[50%] border border-dashed border-[#b6d4b9]" /><div className="relative flex size-9 items-center justify-center rounded-full bg-[#0f6b4f] text-white shadow-lg shadow-[#0f6b4f]/30"><MapPin className="size-4" /></div>{[['left-[21%] top-[28%]', 'bg-[#e88331]'], ['right-[19%] top-[24%]', 'bg-[#5b8fc4]'], ['left-[28%] bottom-[22%]', 'bg-[#e88331]'], ['right-[29%] bottom-[20%]', 'bg-[#5b8fc4]']].map(([pos, color], i) => <span key={i} className={`absolute ${pos} flex size-5 items-center justify-center rounded-full ${color} text-white shadow-sm`}><MapPin className="size-3" /></span>)}</div><div className="mt-4 flex justify-between text-[10px] text-[#7f9085]"><span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#e88331]" />Food sources</span><span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#5b8fc4]" />NGOs & shelters</span><span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#0f6b4f]" />You</span></div></section>
     </div>
   </>
